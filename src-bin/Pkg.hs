@@ -3,9 +3,6 @@
   based on GHC repository revision 1c0b7362068d05b68bd7e05c4d2ef51da9533bf7
  -}
 {-# LANGUAGE CPP #-}
-#if __GLASGOW_HASKELL__ < 709
-#include "Pkg-708.hs"
-#else
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, RecordWildCards,
              GeneralizedNewtypeDeriving, StandaloneDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -2044,5 +2041,3 @@ removeFileSafe fn =
 
 absolutePath :: FilePath -> IO FilePath
 absolutePath path = return . normalise . (</> path) =<< getCurrentDirectory
-
-#endif
