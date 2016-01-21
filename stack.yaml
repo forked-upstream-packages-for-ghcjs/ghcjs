@@ -5,3 +5,10 @@ packages:
 - lib/ghcjs-prim/
 #- utils/patch/
 #- test/
+
+nix:
+  enable: false # Section is optional for nix users
+
+  packages:
+  - haskellPackages.cabal-install
+  - nodejs
