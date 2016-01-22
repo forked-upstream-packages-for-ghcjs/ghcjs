@@ -7,7 +7,7 @@ Author:         Victor Nazarov, Hamish Mackenzie, Luite Stegeman
 Copyright:      Victor Nazarov, Hamish Mackenzie, Luite Stegeman
 Maintainer:     Luite Stegeman <stegeman@gmail.com>
 Stability:      Experimental
-Build-Type:     Custom
+Build-Type:     Simple
 Cabal-Version:  >= 1.10
 
 data-dir:       .
