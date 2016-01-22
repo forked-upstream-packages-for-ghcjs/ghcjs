@@ -11,4 +11,7 @@ nix:
 
   packages:
   - haskellPackages.cabal-install
+  - haskellPackages.alex
+  - haskellPackages.happy
   - nodejs
+  - autoconf
