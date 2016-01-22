@@ -1,0 +1,25 @@
+# TODO: Use this for building ghcjs itself too.
+# Best to do once PRs are merged, and lts has them.
+# In the meantime this should be a superset of `stage0.yaml`.
+resolver: lts-3.6
+
+packages:
+- '.'
+- lib/ghcjs-prim/
+#- utils/patch/
+#- test/
+
+  # ghc-prim, base, integer-gmp, template-haskell
+- location:
+    git: https://github.com/forked-upstream-packages-for-ghcjs/ghc
+    commit: 098a4246bac0c37508694de7be36b50689802334
+
+nix:
+  enable: false # Section is unneeded for non-nix-users
+
+  packages:
+  - haskellPackages.cabal-install
+  - haskellPackages.alex
+  - haskellPackages.happy
+  - nodejs
+  - autoconf

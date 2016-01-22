@@ -7,11 +7,9 @@ packages:
 #- test/
 
 nix:
-  enable: false # Section is optional for nix users
+  enable: false # Section is unneeded for non-nix-users
 
   packages:
-  - haskellPackages.cabal-install
   - haskellPackages.alex
   - haskellPackages.happy
   - nodejs
-  - autoconf
