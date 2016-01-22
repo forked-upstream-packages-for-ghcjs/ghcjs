@@ -1,1 +1,7 @@
 resolver: lts-3.6
+
+packages:
+- '.'
+- lib/ghcjs-prim/
+#- utils/patch/
+#- test/
