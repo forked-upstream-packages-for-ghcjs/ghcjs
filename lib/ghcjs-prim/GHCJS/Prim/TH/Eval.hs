@@ -1,19 +1,13 @@
 {-# LANGUAGE CPP, LambdaCase, BangPatterns, MagicHash, TupleSections, ScopedTypeVariables, DeriveDataTypeable #-}
-#ifdef ghcjs_HOST_OS
 {-# LANGUAGE JavaScriptFFI #-}
-#endif
 
 {- |
      Evaluate Template Haskell splices on node.js
  -}
 
 module GHCJS.Prim.TH.Eval (
-#ifdef ghcjs_HOST_OS
          runTHServer
-#endif
        ) where
-
-#ifdef ghcjs_HOST_OS
 
 import           GHCJS.Prim.TH.Serialized
 import           GHCJS.Prim.TH.Types
@@ -275,6 +269,3 @@ toBs :: Ptr Word8 -> IO ByteString
 toBs p = do
   l <- js_bufSize p
   BU.unsafePackCStringLen (castPtr p, l)
-
-#endif
-
