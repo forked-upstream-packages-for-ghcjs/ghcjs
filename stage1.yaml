@@ -4,10 +4,10 @@
 resolver: lts-3.6
 
 packages:
-- '.'
-- lib/ghcjs-prim/
+- ghcjs/
+- ghcjs-prim/
 #- utils/patch/
-#- test/
+#- ghcjs/test/
 
   # ghc-prim, base, integer-gmp, template-haskell
 - location:

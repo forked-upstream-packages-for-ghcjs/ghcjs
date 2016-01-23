@@ -1,10 +1,10 @@
 resolver: lts-3.6
 
 packages:
-- '.'
-- lib/ghcjs-prim/
+- ghcjs/
+- ghcjs-prim/
 #- utils/patch/
-#- test/
+#- ghcjs/test/
 
 nix:
   enable: false # Section is unneeded for non-nix-users
