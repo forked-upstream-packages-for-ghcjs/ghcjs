@@ -25,6 +25,9 @@ data-files:     lib/include/ghcjs/*.h
                 lib/etc/manifest.webapp
                 lib/bin/*.sh
                 lib/bin/*.exe.options
+                doc/*.txt
+                lib/settings
+                lib/platformConstants
 
 extra-source-files:
                 include/prim/*.hs-incl
