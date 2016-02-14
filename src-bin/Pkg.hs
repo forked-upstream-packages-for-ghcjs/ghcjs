@@ -566,17 +566,21 @@ getPkgDatabases verbosity modify use_user use_cache expand_vars my_flags = do
   -- this is found relative to the ghc-pkg.exe binary, whereas on Unix the
   -- location is passed to the binary using the --global-package-db flag by the
   -- wrapper script.
-  let err_msg = "missing --global-package-db option, location of global package database unknown\n"
-  global_conf <-
-     case [ f | FlagGlobalConfig f <- my_flags ] of
-        [] -> die err_msg
-        fs -> return (last fs)
+  global_conf <- let
+     ramifications_msg =
+       "some operations cannot be performed without the global package database"
+     in case [ f | FlagGlobalConfig f <- my_flags ] of
+        [] -> do
+          warn "missing --global-package-db option, location of global package database unknown"
+          warn ramifications_msg
+          return Nothing
+        fs -> return $ Just $ last fs
 
   -- The value of the $topdir variable used in some package descriptions
   -- Note that the way we calculate this is slightly different to how it
   -- is done in ghc itself. We rely on the convention that the global
   -- package db lives in ghc's libdir.
-  top_dir <- absolutePath (takeDirectory global_conf)
+  top_dir <- mapM absolutePath $ takeDirectory <$> global_conf
 
   let no_user_db = FlagNoUserDb `elem` my_flags
 
@@ -603,8 +607,9 @@ getPkgDatabases verbosity modify use_user use_cache expand_vars my_flags = do
   -- use the user db.
   let sys_databases
         | Just (user_conf,user_exists) <- mb_user_conf,
-          use_user || user_exists = [user_conf, global_conf]
-        | otherwise               = [global_conf]
+          use_user || user_exists = user_conf : global_conf'
+        | otherwise               = global_conf'
+        where global_conf' = maybeToList global_conf
 
   e_pkg_path <- tryIO (System.Environment.getEnv "GHCJS_PACKAGE_PATH")
   let env_stack =
@@ -652,8 +657,12 @@ getPkgDatabases verbosity modify use_user use_cache expand_vars my_flags = do
 
   db_stack  <- sequence
     [ do db <- readParseDatabase verbosity mb_user_conf modify use_cache db_path
-         if expand_vars then return (mungePackageDBPaths top_dir db)
-                        else return db
+         case (expand_vars, top_dir) of
+           (True,  Just top_dir') -> return $ mungePackageDBPaths top_dir' db
+           (False, _            ) -> return db
+           (True,  Nothing      ) -> die err_msg
+             where err_msg = "unable to expand relative paths without a global package db\n"
+                     ++ "try --no-expand-pkgroot to avoid attempting to expand relative paths\n"
     | db_path <- final_stack ]
 
   let flag_db_stack = [ db | db_name <- flag_db_names,
@@ -2037,4 +2046,3 @@ removeFileSafe fn =
 
 absolutePath :: FilePath -> IO FilePath
 absolutePath path = return . normalise . (</> path) =<< getCurrentDirectory
-
