@@ -153,14 +153,14 @@ isGhcjsPrimPackage dflags pkgKey
 
 ghcjsPrimPackage :: DynFlags -> IO PackageKey
 ghcjsPrimPackage dflags = do
+  libDir <- getLibDir
+  let filename = libDir </> "wiredinkeys" <.> "yaml"
   keys <- BS.readFile filename
   case Yaml.decodeEither keys of
     Left err -> error $ "could not read wired-in package keys from " ++ filename
     Right m -> case M.lookup "ghcjs-prim" m of
       Nothing -> error "Package `ghcjs-prim' is required to link executables"
       Just k -> return (stringToPackageKey k)
-  where
-    filename = getLibDir dflags </> "wiredinkeys" <.> "yaml"
 
 link' :: GhcjsEnv
       -> GhcjsSettings
@@ -582,4 +582,3 @@ throwCmdLineErrorS dflags = throwCmdLineError . showSDoc dflags
 
 throwCmdLineError :: String -> IO a
 throwCmdLineError = throwGhcExceptionIO . CmdLineError
-

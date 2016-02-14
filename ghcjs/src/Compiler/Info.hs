@@ -70,14 +70,8 @@ getTopDir :: DynFlags -> FilePath
 getTopDir = sTopDir . settings
 
 -- | get the library directory (ghcjs --print-libdir).
-getLibDir :: DynFlags -> FilePath
-getLibDir = {- (</>"lib") . -} sTopDir . settings
-
-{- | get the library directory from the unsafe global DynFlags
-     throws an exception if called before a Ghc session has been started
- -}
-unsafeGetLibDir :: FilePath
-unsafeGetLibDir = getLibDir unsafeGlobalDynFlags
+getLibDir :: IO FilePath
+getLibDir = (</>) <$> Paths_ghcjs.getDataDir <*> pure "lib"
 
 -- | find location of the global package database
 getGlobalPackageDB :: FilePath
@@ -85,7 +79,7 @@ getGlobalPackageDB :: FilePath
 getGlobalPackageDB libDir = libDir </> "package.conf.d"
 
 getUserTopDir :: IO (Maybe FilePath)
-getUserTopDir = fmap Just getUserTopDir' `E.catch` 
+getUserTopDir = fmap Just getUserTopDir' `E.catch`
                    \(E.SomeException _) -> return Nothing
 
 getUserTopDir' :: IO FilePath -- (Maybe FilePath)
@@ -129,13 +123,8 @@ getCompilerSubdir :: [Char]
 getCompilerSubdir = "ghcjs-" ++ getCompilerVersion
 
 -- | find location for static data installed by ghcjs-boot
-getDataDir :: FilePath
-           -> FilePath
-getDataDir topDir = topDir
-
--- | default location to get data files when booting: Cabal data directory
-ghcjsBootDefaultDataDir :: IO FilePath
-ghcjsBootDefaultDataDir = Paths_ghcjs.getDataDir
+getDataDir :: IO FilePath
+getDataDir = Paths_ghcjs.getDataDir
 
 {- |
   get the command line arguments, using the .options file trick on

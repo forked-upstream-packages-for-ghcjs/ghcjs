@@ -186,33 +186,14 @@ fixNameCache = do
       isPrimOp (AnId i) = isPrimOpId i
       isPrimOp _        = False
 
-
-checkIsBooted :: Maybe String -> IO ()
-checkIsBooted mbMinusB = do
-  base <- mkLibDir mbMinusB
-  let bootFile = base </> "ghcjs_boot.completed"
-  e <- doesFileExist bootFile
-  when (not e) $ do
-    hPutStrLn stderr $ "cannot find `" ++ bootFile ++ "'\n\n" ++
-#ifdef WINDOWS
-                       "please install the GHCJS boot libraries or edit the `.options' file to point to the correct library location\n" ++
-#else
-                       "please install the GHCJS boot libraries or edit the `ghcjs' wrapper script to point to the correct library location\n" ++
-#endif
-                       "See README for details\n" ++
-                       "(running `ghcjs-boot' might fix this)\n"
-    exitWith (ExitFailure 87)
-
-
-runJsProgram :: Maybe String -> [String] -> IO ()
-runJsProgram Nothing _ = error noTopDirErrorMsg
-runJsProgram (Just topDir) args
+runJsProgram :: [String] -> IO ()
+runJsProgram  args
   | (_:script:scriptArgs) <- dropWhile (/="--run") args = do
       hSetBuffering stdin NoBuffering
       hSetBuffering stdout NoBuffering
       hSetBuffering stderr NoBuffering
-      node <- T.strip <$> T.readFile (topDir </> "node")
-      ph <- runProcess (T.unpack node) (script:scriptArgs) Nothing Nothing Nothing Nothing Nothing
+      node <- fromMaybe "node" <$> getEnvMay "GHCJS_NODE"
+      ph <- runProcess node (script:scriptArgs) Nothing Nothing Nothing Nothing Nothing
       exitWith =<< waitForProcess ph
   | otherwise = error "usage: ghcjs --run [script] [arguments]"
 
@@ -220,7 +201,7 @@ runJsProgram (Just topDir) args
 --   call GHC to compile our Setup.hs
 bootstrapFallback :: IO ()
 bootstrapFallback = do
-    ghc <- fmap (fromMaybe "ghc") $ getEnvMay "GHCJS_WITH_GHC"
+    ghc <- fromMaybe "ghc" <$> getEnvMay "GHCJS_WITH_GHC"
     as  <- ghcArgs <$> getFullArguments
     e   <- rawSystem ghc $ as -- run without GHCJS library prefix arg
     case (e, getOutput as) of
@@ -267,12 +248,13 @@ installExecutable dflags settings srcs = do
 generateLib :: GhcjsSettings -> Ghc ()
 generateLib _settings = do
   dflags1 <- getSessionDynFlags
+  dataDir <- liftIO getDataDir
   liftIO $ do
     (dflags2, pkgs0) <- initPackages dflags1
     let pkgs = catMaybes $ map (\p -> fmap (T.pack (getPackageName dflags2 p),)
                                            (getPackageVersion dflags2 p))
                                pkgs0
-        base = getDataDir (getLibDir dflags2) </> "shims"
+        base = dataDir </> "shims"
         pkgs' :: [(T.Text, Version)]
         pkgs' = M.toList $ M.fromListWith max pkgs
     (beforeFiles, afterFiles) <- Gen2.collectShims base pkgs'
@@ -364,24 +346,26 @@ ghcjsCleanupHandler dflags env inner =
   where
     terminate r = terminateProcess (thrProcess r) `catch` \(_::SomeException) -> return ()
 
-runGhcjsSession :: Maybe FilePath  -- ^ Directory with library files,
-                   -- like GHC's -B argument
-                -> GhcjsSettings
+runGhcjs m = do
+  libDir <- getLibDir
+  runGhc (Just libDir) m
+
+runGhcjsSession :: GhcjsSettings
                 -> Ghc b           -- ^ Action to perform
                 -> IO b
-runGhcjsSession mbMinusB settings m = runGhc mbMinusB $ do
-    setupSessionForGhcjs settings
-    m
+runGhcjsSession settings m = runGhcjs $ do
+  setupSessionForGhcjs settings
+  m
 
 -- | modifies a Ghc session to use the GHCJS target
 setupSessionForGhcjs :: GhcjsSettings
                      -> Ghc ()
 setupSessionForGhcjs ghcjsSettings = do
   dflags <- getSessionDynFlags
-  let base = getLibDir dflags
+  libDir <- liftIO getLibDir
   jsEnv <- liftIO newGhcjsEnv
   _ <- setSessionDynFlags
-       $ setGhcjsPlatform ghcjsSettings jsEnv [] base
+       $ setGhcjsPlatform ghcjsSettings jsEnv [] libDir
        $ updateWays $ addWay' (WayCustom "js")
        $ setGhcjsSuffixes False dflags
   fixNameCache
@@ -408,14 +392,13 @@ getWrappedArgs = do
      | "--ghcjs-booting-print" `elem` as -> getFullArguments >>= printBootInfo >> exitSuccess
      | otherwise                         -> do
         fas <- getFullArguments
-        when (isNothing  $ getArgsTopDir fas) (error noTopDirErrorMsg)
         return (fas, booting, booting1)
 
 printBootInfo :: [String] -> IO ()
 printBootInfo v
-  | "--print-topdir"         `elem` v = putStrLn t
-  | "--print-libdir"         `elem` v = putStrLn t
-  | "--print-global-db"      `elem` v = putStrLn (getGlobalPackageDB t)
+  | "--print-topdir"         `elem` v = error "this no longer exists"
+  | "--print-libdir"         `elem` v = error "this no longer exists"
+  | "--print-global-db"      `elem` v = error "this no longer exists"
   | "--print-user-db-dir"    `elem` v = putStrLn . fromMaybe "<none>" =<< getUserPackageDir
   | "--print-default-libdir" `elem` v = putStrLn =<< getDefaultLibDir
   | "--print-default-topdir" `elem` v = putStrLn =<< getDefaultTopDir
@@ -423,25 +406,6 @@ printBootInfo v
   | "--numeric-ghc-version"  `elem` v = putStrLn getGhcCompilerVersion
   | "--print-rts-profiled"   `elem` v = print rtsIsProfiled
   | otherwise                         = error "no --ghcjs-setup-print or --ghcjs-booting-print options found"
-  where
-    t = fromMaybe (error noTopDirErrorMsg) (getArgsTopDir v)
-
-noTopDirErrorMsg :: String
-noTopDirErrorMsg = "Cannot determine library directory.\n\nGHCJS requires a -B argument to specify the library directory. " ++
-#ifdef WINDOWS
-                   "On Windows, GHCJS reads the `ghcjs.exe.options' and `ghcjs-[version].exe.options' files from the " ++
-                   "program directory for extra command line arguments."
-#else
-                   "Usually this argument is provided added by a shell script wrapper. Verify that you are not accidentally " ++
-                   "invoking the executable directly."
-#endif
-
-getArgsTopDir :: [String] -> Maybe String
-getArgsTopDir xs
-  | null minusB_args = Nothing
-  | otherwise        = Just (drop 2 $ last minusB_args)
-  where
-    minusB_args = filter ("-B" `isPrefixOf`) xs
 
 buildJsLibrary :: DynFlags -> [FilePath] -> [FilePath] -> [FilePath] -> IO ()
 buildJsLibrary _dflags srcs js_objs objs = do

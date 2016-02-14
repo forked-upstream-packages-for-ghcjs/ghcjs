@@ -95,11 +95,9 @@ main = do
     -- 1. extract the -B flag from the args
     (argv0, booting, booting_stage1) <- Ghcjs.getWrappedArgs
 
-    let (minusB_args, argv1) = partition ("-B" `isPrefixOf`) argv0
-        mbMinusB | null minusB_args = Nothing
-                 | otherwise = Just (drop 2 (last minusB_args))
-        argv1' = map (mkGeneralLocated "on the commandline") argv1
-    when (any (== "--run") argv1) (Ghcjs.runJsProgram mbMinusB argv1)
+    let argv1 = "-no-global-package-db" : argv0 -- we don't support a global package db
+        argv1' = mkGeneralLocated "on the commandline" <$> argv1
+    when (any (== "--run") argv1) (Ghcjs.runJsProgram argv1)
     (argv1'', ghcjsSettings) <- Ghcjs.getGhcjsSettings argv1'
 
     -- fall back to native GHC if we're booting (we can't build Setup.hs with GHCJS yet)
@@ -130,16 +128,16 @@ main = do
                    ShowNumGhcVersion         -> putStrLn cProjectVersion
                    ShowOptions isInteractive -> showOptions isInteractive
          Right postStartupMode -> do
-          when (not booting) (Ghcjs.checkIsBooted mbMinusB)
-            -- start our GHC session
+           -- start our GHC session
 
-          let runPostStartup native = GHC.runGhc mbMinusB $ do
+          let runPostStartup native = Ghcjs.runGhcjs $ do
 
                dflags0 <- GHC.getSessionDynFlags
                dflags1 <- return dflags0 -- Ghcjs.addPkgConf dflags0 -- Use the GHCJS user package DB
 
-               let dataDir = Ghcjs.getLibDir dflags1
-                   settings0 = (settings dflags1)
+               dataDir <- liftIO Ghcjs.getLibDir
+
+               let settings0 = (settings dflags1)
                      { sGhcUsagePath  = dataDir </> "doc" </> "ghcjs-usage.txt"
                      , sGhciUsagePath = dataDir </> "doc" </> "ghci-usage.txt"
                      }
@@ -238,7 +236,7 @@ main' postLoadMode dflags0 args flagWarnings ghcjsSettings native = do
 
 
   -- add GHCJS configuration
-  let baseDir = Ghcjs.getLibDir dflags4
+  baseDir <- liftIO Ghcjs.getLibDir
   dflags4b <- if native
                 then return (Ghcjs.setNativePlatform jsEnv ghcjsSettings baseDir dflags4)
                 else return $

@@ -288,9 +288,11 @@ getPackageArchives dflags pkgs =
              | otherwise                  = ""
 
 -- fixme the wired-in package id's we get from GHC we have no version
+-- fixme it won't be here
 getShims :: DynFlags -> [FilePath] -> [PackageKey] -> IO ([FilePath], [FilePath])
 getShims dflags extraFiles pkgDeps = do
-  (w,a) <- collectShims (getLibDir dflags </> "shims")
+  libDir <- getLibDir
+  (w,a) <- collectShims (libDir </> "shims")
                         (map (convertPkg dflags) pkgDeps)
   extraFiles' <- mapM canonicalizePath extraFiles
   return (w, a++extraFiles')
@@ -308,15 +310,17 @@ convertPkg dflags p
 combineFiles :: DynFlags -> FilePath -> IO ()
 combineFiles df fp = do
   files   <- mapM (B.readFile.(fp</>)) ["rts.js", "lib.js", "out.js"]
-  runMain <- B.readFile (getLibDir df </> "runmain.js")
+  libDir  <- getLibDir
+  runMain <- B.readFile (libDir </> "runmain.js")
   B.writeFile (fp</>"all.js") (mconcat (files ++ [runMain]))
 
 -- | write the index.html file that loads the program if it does not exit
 writeHtml :: DynFlags -> FilePath -> IO ()
 writeHtml df out = do
   e <- doesFileExist htmlFile
-  when (not e) $
-    B.readFile (getLibDir df </>"template.html") >>= B.writeFile htmlFile
+  when (not e) $ do
+    libDir <- getLibDir
+    B.readFile (libDir </>"template.html") >>= B.writeFile htmlFile
   where
     htmlFile = out </> "index.html"
 
@@ -324,8 +328,9 @@ writeHtml df out = do
 writeRunMain :: DynFlags -> FilePath -> IO ()
 writeRunMain df out = do
   e <- doesFileExist runMainFile
+  libDir <- getLibDir
   when (not e) $
-    B.readFile (getLibDir df </> "runmain.js") >>= B.writeFile runMainFile
+    B.readFile (libDir </> "runmain.js") >>= B.writeFile runMainFile
   where
     runMainFile = out </> "runmain.js"
 
@@ -373,8 +378,9 @@ writeRunner settings dflags out = when (gsBuildRunner settings) $ do
 writeWebAppManifest :: DynFlags -> FilePath -> IO ()
 writeWebAppManifest df out = do
   e <- doesFileExist manifestFile
-  when (not e) $
-    B.readFile (getLibDir df </> "manifest.webapp") >>= B.writeFile manifestFile
+  when (not e) $ do
+    libDir <- getLibDir
+    B.readFile (libDir </> "manifest.webapp") >>= B.writeFile manifestFile
   where
     manifestFile = out </> "manifest.webapp"
 
@@ -545,7 +551,8 @@ readSystemDeps :: DynFlags
                -> FilePath
                -> IO ([PackageKey], Set Fun)
 readSystemDeps dflags depsName requiredFor file = do
-  b  <- B.readFile (getLibDir dflags </> file)
+  libDir <- getLibDir
+  b  <- B.readFile (libDir </> file)
   wi <- readSystemWiredIn dflags
   case Yaml.decodeEither b of
     Left err -> error $ "could not read " ++ depsName ++
@@ -562,6 +569,8 @@ readSystemDeps dflags depsName requiredFor file = do
 
 readSystemWiredIn :: DynFlags -> IO [(Text, PackageKey)]
 readSystemWiredIn dflags = do
+  libDir <- getLibDir
+  let filename = libDir </> "wiredinkeys" <.> "yaml"
   b <- B.readFile filename
   case Yaml.decodeEither b of
      Left err -> error $ "could not read wired-in package keys from " ++ filename
@@ -569,7 +578,6 @@ readSystemWiredIn dflags = do
                         . M.union ghcWiredIn -- GHC wired-in package keys override those in the file
                         . fmap stringToPackageKey $ m
   where
-    filename = getLibDir dflags </> "wiredinkeys" <.> "yaml"
     ghcWiredIn :: Map Text PackageKey
     ghcWiredIn = M.fromList $ map (\k -> (T.pack (packageKeyString k), k))
                                   wiredInPackageKeys

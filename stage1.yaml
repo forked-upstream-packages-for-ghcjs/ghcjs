@@ -3,6 +3,9 @@
 # In the meantime this should be a superset of `stage0.yaml`.
 resolver: lts-3.6
 
+# Should be about correct but of course we will use the GHCJS we just built
+compiler: ghcjs-0.2.0_ghc-7.10.2
+
 packages:
 - ghcjs/
 - ghcjs-prim/
