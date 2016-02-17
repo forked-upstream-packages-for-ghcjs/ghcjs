@@ -1,4 +1,5 @@
 {-# LANGUAGE NondecreasingIndentation, TupleSections #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-
   Various utilities for building and loading dynamic libraries, to make Template Haskell
   work in GHCJS
@@ -60,6 +61,7 @@ import           Linker
 import qualified Data.Yaml                as Yaml
 import Compiler.Info (getLibDir)
 import Gen2.Archive
+import Gen2.Linker (readSystemWiredIn)
 
 
 -------------------------------------------------------------------------------------------
@@ -153,14 +155,8 @@ isGhcjsPrimPackage dflags pkgKey
 
 ghcjsPrimPackage :: DynFlags -> IO PackageKey
 ghcjsPrimPackage dflags = do
-  keys <- BS.readFile filename
-  case Yaml.decodeEither keys of
-    Left err -> error $ "could not read wired-in package keys from " ++ filename
-    Right m -> case M.lookup "ghcjs-prim" m of
-      Nothing -> error "Package `ghcjs-prim' is required to link executables"
-      Just k -> return (stringToPackageKey k)
-  where
-    filename = getLibDir dflags </> "wiredinkeys" <.> "yaml"
+  map <- readSystemWiredIn dflags
+  return $ map M.! "ghcjs-prim"
 
 link' :: GhcjsEnv
       -> GhcjsSettings
