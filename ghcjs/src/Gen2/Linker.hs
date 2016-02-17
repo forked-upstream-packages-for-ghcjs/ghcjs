@@ -561,15 +561,10 @@ readSystemDeps dflags depsName requiredFor file = do
 
 
 readSystemWiredIn :: DynFlags -> IO [(Text, PackageKey)]
-readSystemWiredIn dflags = do
-  b <- B.readFile filename
-  case Yaml.decodeEither b of
-     Left err -> error $ "could not read wired-in package keys from " ++ filename
-     Right m  -> return . M.toList
-                        . M.union ghcWiredIn -- GHC wired-in package keys override those in the file
-                        . fmap stringToPackageKey $ m
+readSystemWiredIn dflags = return $ M.toList
+  $ M.union ghcWiredIn -- GHC wired-in package keys override ours
+  $ M.fromList [("ghcjs-prim", stringToPackageKey "ghcjs-prim")]
   where
-    filename = getLibDir dflags </> "wiredinkeys" <.> "yaml"
     ghcWiredIn :: Map Text PackageKey
     ghcWiredIn = M.fromList $ map (\k -> (T.pack (packageKeyString k), k))
                                   wiredInPackageKeys

@@ -152,15 +152,7 @@ isGhcjsPrimPackage dflags pkgKey
       any (=="-DBOOTING_PACKAGE=ghcjs-prim") (opt_P dflags))
 
 ghcjsPrimPackage :: DynFlags -> IO PackageKey
-ghcjsPrimPackage dflags = do
-  keys <- BS.readFile filename
-  case Yaml.decodeEither keys of
-    Left err -> error $ "could not read wired-in package keys from " ++ filename
-    Right m -> case M.lookup "ghcjs-prim" m of
-      Nothing -> error "Package `ghcjs-prim' is required to link executables"
-      Just k -> return (stringToPackageKey k)
-  where
-    filename = getLibDir dflags </> "wiredinkeys" <.> "yaml"
+ghcjsPrimPackage dflags = return (stringToPackageKey "ghcjs-prim")
 
 link' :: GhcjsEnv
       -> GhcjsSettings

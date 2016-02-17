@@ -33,3 +33,7 @@ library
                        GHCJS.Prim.TH.Eval
 
     build-depends:     primitive
+
+    -- We need to set the package key to ghcjs-prim (without a version number)
+    -- as it's magic.
+    ghc-options:       -this-package-key ghcjs-prim
