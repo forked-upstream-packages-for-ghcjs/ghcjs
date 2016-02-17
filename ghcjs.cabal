@@ -115,10 +115,7 @@ Library
                      Compiler.JMacro.QQ,
                      Compiler.JMacro.ParseTH,
                      Compiler.JMacro.Util,
-                     GHCJS,
-                     -- shared code from the ghcjs-prim package, found in lib/ghcjs-prim
-                     GHCJS.Prim.TH.Types,
-                     GHCJS.Prim.TH.Serialized
+                     GHCJS
     other-modules: Paths_ghcjs
     build-depends: base           >= 4        && < 5,
                    Cabal          >= 1.22     && < 1.23,
@@ -162,10 +159,11 @@ Library
                    safe                       >= 0.3  && < 0.4,
                    parsec                     >= 3.1  && < 3.2,
                    haskell-src-exts           >= 1.16 && < 1.17,
-                   haskell-src-meta           >= 0.6.0.3  && < 0.7
+                   haskell-src-meta           >= 0.6.0.3  && < 0.7,
+                   ghcjs-prim
     exposed: True
     buildable: True
-    hs-source-dirs: src lib/ghcjs-prim
+    hs-source-dirs: src
     include-dirs: include
     GHC-Options: -Wall -fno-warn-orphans -fno-warn-name-shadowing -fno-warn-unused-do-bind -auto-all -fprof-auto
 
