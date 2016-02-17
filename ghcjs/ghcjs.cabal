@@ -25,26 +25,13 @@ data-files:     lib/include/ghcjs/*.h
                 lib/etc/manifest.webapp
                 lib/bin/*.sh
                 lib/bin/*.exe.options
-                lib/ghcjs-prim/LICENSE
-                lib/ghcjs-prim/Setup.hs
-                lib/ghcjs-prim/cbits/*.c
-                lib/ghcjs-prim/GHCJS/*.hs
-                lib/ghcjs-prim/GHCJS/Prim/*.hs
-                lib/ghcjs-prim/GHCJS/Prim/Internal/*.hs
-                lib/ghcjs-prim/GHCJS/Prim/TH/*.hs
-                lib/ghcjs-prim/ghcjs-prim.cabal
-                doc/*.txt
 
 extra-source-files:
-                utils/*.hs
-                utils/*.sh
                 include/prim/*.hs-incl
                 include/prim/*.txt
                 include/*.h
-                README.markdown
                 test/LICENSE
                 test/ghcjs-testsuite.cabal
-                stack.yaml
 
 source-repository head
   type:     git
