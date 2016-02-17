@@ -9,22 +9,26 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules: GHCJS.Prim
-                   GHCJS.Prim.Internal
-                   GHCJS.Prim.Internal.Build
-                   GHCJS.Prim.TH.Eval
-                   GHCJS.Prim.TH.Serialized
-                   GHCJS.Prim.TH.Types
+  exposed-modules:     GHCJS.Prim
+                       GHCJS.Prim.TH.Serialized
+                       GHCJS.Prim.TH.Types
 
-  c-sources: cbits/ghcjs-prim.c
-  build-depends:       base             >= 4 && < 5,
-                       ghc-prim,
-                       template-haskell >= 2.9 && < 2.11,
-                       primitive,
-                       binary,
-                       bytestring,
-                       containers
+  build-depends:       base             >= 4        && < 5,
+                       template-haskell >= 2.9      && < 2.11,
+                       binary           >= 0.7      && < 0.8,
+                       bytestring       >= 0.10     && < 0.11,
+                       containers,
+                       ghc-prim
+
   default-language:    Haskell2010
-  ghc-options: -O2
-  cpp-options: -DBOOTING_PACKAGE=ghcjs-prim
 
+  if impl(ghcjs)
+    c-sources: cbits/ghcjs-prim.c
+    ghc-options: -O2
+    cpp-options: -DBOOTING_PACKAGE=ghcjs-prim
+
+    exposed-modules:   GHCJS.Prim.Internal
+                       GHCJS.Prim.Internal.Build
+                       GHCJS.Prim.TH.Eval
+
+    build-depends:     primitive
